@@ -4,7 +4,7 @@ import type { ChatEvent } from './chat-protocol';
 export type Mode = 'mock' | 'server';
 export type AnswerBlock = { type: 'text'; text: string } | { type: 'component'; spec: ComponentSpec };
 export type Turn = {
-  id: number; prompt: string; mode: Mode; model: string; scenario: string;
+  id: number; attempt: number; prompt: string; mode: Mode; model: string; scenario: string;
   text: string; components: ComponentSpec[]; blocks: AnswerBlock[]; status: 'streaming' | 'complete' | 'stopped' | 'error'; error?: string;
 };
 export type Message = { role: 'user' | 'assistant'; content: string };

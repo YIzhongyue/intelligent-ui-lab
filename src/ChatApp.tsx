@@ -40,7 +40,7 @@ export function ChatApp() {
     if (active.current || (mode === 'server' && !serverReady)) return;
     const question = retry?.prompt ?? prompt.trim();
     if (!question || question.length > 4000) return;
-    const turn: Turn = { id: retry?.id ?? nextId.current++, prompt: question, mode, model: mode === 'mock' ? 'Local fixture' : model, scenario, text: '', components: [], blocks: [], status: 'streaming' };
+    const turn: Turn = { id: retry?.id ?? nextId.current++, attempt: (retry?.attempt ?? 0) + 1, prompt: question, mode, model: mode === 'mock' ? 'Local fixture' : model, scenario, text: '', components: [], blocks: [], status: 'streaming' };
     const controller = new AbortController();
     const request = { controller, id: turn.id };
     active.current = request;
@@ -88,7 +88,7 @@ export function ChatApp() {
               <div className="preview-heading"><span>{turn.mode === 'mock' ? 'LOCAL MOCK' : 'CHAT SERVER'} · {turn.model}</span><span role="status" className={`status ${turn.status === 'streaming' ? 'live' : ''}`}>{turn.status === 'stopped' ? 'Stopped · partial response' : turn.status}</span></div>
               {turn.blocks.map((block, index) => block.type === 'text'
                 ? <p className="answer-text" key={`text-${index}`}>{block.text}</p>
-                : <UIRenderer key={`component-${block.spec.id}`} spec={block.spec} idPrefix={`turn-${turn.id}-`} />)}
+                : <UIRenderer key={`attempt-${turn.attempt}-component-${block.spec.id}`} spec={block.spec} idPrefix={`turn-${turn.id}-attempt-${turn.attempt}-`} />)}
               {!turn.text && !turn.components.length && turn.status === 'streaming' && <p className="small">Waiting for the first validated response…</p>}
               {turn.error && <p className="error" role="alert">{turn.error} Any valid partial response is retained.</p>}
               {latest?.id === turn.id && ['stopped', 'error'].includes(turn.status) && <button className="secondary" disabled={running || (mode === 'server' && !serverReady)} onClick={() => void run(turn)}>Retry with current settings</button>}

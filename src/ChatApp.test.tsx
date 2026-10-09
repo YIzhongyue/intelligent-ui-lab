@@ -99,6 +99,17 @@ describe('chat interactions', () => {
     expect(host.querySelectorAll('output')[0].textContent).toContain('70');
     expect(host.querySelectorAll('output')[1].textContent).toContain('45');
   });
+  it('resets local controls when retry output arrives in the same React batch', async () => {
+    const component = { type: 'component', component: { kind: 'skew', id: 'same', title: 'Retry control', rows: 24000, partitions: 8, hotPercent: 45 } } as const;
+    await send('Question'); await act(async () => requests[0].emit(component)); await click('Stop response');
+    const oldSlider = query<HTMLInputElement>('input[type="range"]');
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(oldSlider, '70'); oldSlider.dispatchEvent(new Event('input', { bubbles: true })); });
+    transport.streamChat.mockImplementationOnce((_messages, _model, _signal, emit) => { emit(component); return Promise.resolve(); });
+    await click('Retry');
+    const newSlider = query<HTMLInputElement>('input[type="range"]');
+    expect(newSlider.value).toBe('45'); expect(newSlider).not.toBe(oldSlider);
+    expect(host.querySelectorAll('.question')).toHaveLength(1);
+  });
   it('supports Enter, Shift+Enter and ignores IME composition', async () => {
     await change('#prompt', 'Keyboard question');
     await act(async () => { query('#prompt').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, bubbles: true })); query('#prompt').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', isComposing: true, bubbles: true })); });

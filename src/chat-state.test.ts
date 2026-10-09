@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildMessages, chatReducer, type Turn } from './chat-state';
-const turn = (id: number, overrides: Partial<Turn> = {}): Turn => ({ id, prompt: `Question ${id}`, mode: 'server', model: 'test-model', scenario: 'text', text: `Answer ${id}`, components: [], blocks: [], status: 'complete', ...overrides });
+const turn = (id: number, overrides: Partial<Turn> = {}): Turn => ({ id, attempt: 1, prompt: `Question ${id}`, mode: 'server', model: 'test-model', scenario: 'text', text: `Answer ${id}`, components: [], blocks: [], status: 'complete', ...overrides });
 describe('chat state', () => {
   it('retains completed history and retries without duplicating a user turn', () => {
     const history = [turn(1), turn(2, { status: 'error' })];
