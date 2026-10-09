@@ -2,6 +2,7 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ChoiceSpec } from './protocol';
 import type { ChatEvent } from './chat-protocol';
 import { ChatApp } from './ChatApp';
 const transport = vi.hoisted(() => ({ loadConfig: vi.fn(), streamChat: vi.fn(), consumeChat: vi.fn() }));
@@ -117,4 +118,88 @@ describe('chat interactions', () => {
     await act(async () => query('#prompt').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
     expect(transport.streamChat).toHaveBeenCalledTimes(1);
   });
+});
+
+const choices = (selection: 'single' | 'multiple' = 'single', id = 'focus'): ChoiceSpec => ({ kind: 'choice-group', id, title: 'Study focus', selection, maxSelections: selection === 'single' ? 1 : 2, options: [{ id: 'a', title: 'Theory' }, { id: 'b', title: 'Practice', body: 'Build an example', icon: 'code', color: 'blue' }, { id: 'c', title: 'Review' }] });
+async function showChoices(selection: 'single' | 'multiple' = 'single', complete = true) {
+  await send('Help me study');
+  await act(async () => { requests[0].emit({ type: 'component', component: choices(selection) }); if (complete) requests[0].resolve(); });
+}
+const choiceButton = () => query<HTMLButtonElement>('.ui-choice-submit');
+async function selectChoice(index: number) { await act(async () => host.querySelectorAll<HTMLInputElement>('.ui-choice input')[index].click()); }
+describe('explicit choice continuation', () => {
+  it('waits for completion and a selection, previews exact text, then submits once', async () => {
+    await showChoices('single', false);
+    expect(choiceButton().disabled).toBe(true); expect(query<HTMLInputElement>('.ui-choice input').disabled).toBe(true);
+    await act(async () => requests[0].resolve()); expect(choiceButton().disabled).toBe(true);
+    await selectChoice(0); expect(requests).toHaveLength(1);
+    const preview = query('.ui-choice-preview p').textContent;
+    await change('#prompt', 'Unsent draft');
+    await act(async () => { choiceButton().click(); choiceButton().click(); });
+    expect(query<HTMLTextAreaElement>('#prompt').value).toBe('Unsent draft');
+    expect(requests).toHaveLength(2); expect(host.querySelectorAll('.question')[1].textContent).toBe('YOU' + preview);
+    expect(transport.streamChat.mock.calls[1][0].at(-1).content).toBe(preview);
+    expect(choiceButton().disabled).toBe(true);
+  });
+  it('uses native exclusive radios and checkboxes with a deselectable cap and stable order', async () => {
+    await showChoices('multiple'); await selectChoice(1); await selectChoice(0);
+    const inputs = [...host.querySelectorAll<HTMLInputElement>('.ui-choice input')];
+    expect(inputs.map(input => input.type)).toEqual(['checkbox', 'checkbox', 'checkbox']); expect(inputs[2].disabled).toBe(true);
+    await selectChoice(0); expect(inputs[2].disabled).toBe(false); await selectChoice(0);
+    expect(query('.ui-choice-preview p').textContent).toContain('- Theory\n- Practice: Build an example');
+    await click('Send choices and continue'); expect(requests).toHaveLength(2);
+  });
+  it('keeps groups independent and invalidates all old groups once another continues', async () => {
+    await showChoices();
+    // A second source is constructed within the streaming lifecycle, not appended after completion.
+    await click('Reset conversation'); await send('Two groups');
+    await act(async () => { requests[1].emit({ type: 'component', component: choices() }); requests[1].emit({ type: 'component', component: choices('multiple', 'second') }); requests[1].resolve(); });
+    await selectChoice(0); await selectChoice(4); await selectChoice(1);
+    const inputs = [...host.querySelectorAll<HTMLInputElement>('.ui-choice input')];
+    expect(inputs[0].checked).toBe(false); expect(inputs[1].checked).toBe(true); expect(inputs[4].checked).toBe(true);
+    expect(new Set(inputs.map(input => input.id)).size).toBe(6);
+    await click('Send choices and continue');
+    expect([...host.querySelectorAll<HTMLButtonElement>('.ui-choice-submit')].every(button => button.disabled)).toBe(true);
+  });
+  it('disables historical choices, settings changes, and config refreshes including mock-to-live', async () => {
+    await showChoices(); await selectChoice(0); await change('#mode', 'mock'); expect(choiceButton().disabled).toBe(true);
+    await change('#mode', 'server'); expect(choiceButton().disabled).toBe(true);
+    await click('Reset conversation'); await send('Fresh source');
+    await act(async () => { requests[1].emit({ type: 'component', component: choices() }); requests[1].resolve(); }); await selectChoice(0);
+    transport.loadConfig.mockResolvedValueOnce({ ready: true, mode: 'mock', defaultModel: 'model-a', models: ['model-a'] });
+    await click('Refresh server settings'); expect(choiceButton().disabled).toBe(true);
+    await send('Server mock source'); await act(async () => { requests[2].emit({ type: 'component', component: choices() }); requests[2].resolve(); });
+    await act(async () => host.querySelectorAll<HTMLInputElement>('.ui-choice input')[3].click());
+    transport.loadConfig.mockResolvedValueOnce({ ready: true, mode: 'openai', defaultModel: 'model-a', models: ['model-a'] });
+    await click('Refresh server settings');
+    expect([...host.querySelectorAll<HTMLButtonElement>('.ui-choice-submit')].every(button => button.disabled)).toBe(true);
+    expect(requests).toHaveLength(3);
+  });
+  it('retries failed continuation without duplicating selection turns and reset cancels it', async () => {
+    await showChoices(); await selectChoice(0); await click('Send choices and continue');
+    await act(async () => requests[1].reject(new Error('Temporary failure'))); await click('Retry');
+    expect(host.querySelectorAll('.question')).toHaveLength(2); expect(choiceButton().disabled).toBe(true);
+    await click('Reset conversation'); expect(requests[2].signal.aborted).toBe(true);
+    await act(async () => { requests[2].emit({ type: 'component', component: choices() }); requests[2].resolve(); });
+    expect(host.querySelectorAll('.question')).toHaveLength(0); expect(host.querySelectorAll('.ui-choice')).toHaveLength(0);
+  });
+  it('remounts choices for retry attempts and ignores stale source output', async () => {
+    await showChoices('single', false); await click('Stop response'); await click('Retry');
+    await act(async () => { requests[0].emit({ type: 'component', component: choices('single', 'stale') }); requests[0].resolve(); requests[1].emit({ type: 'component', component: choices() }); requests[1].resolve(); });
+    expect(host.querySelectorAll('.ui-choice')).toHaveLength(3); expect(choiceButton().disabled).toBe(true);
+    await selectChoice(2); await click('Send choices and continue'); expect(requests).toHaveLength(3);
+  });
+});
+
+it('keeps local mock choices enabled when delayed initial server configuration arrives', async () => {
+  await act(async () => root.unmount());
+  let resolve!: (value: unknown) => void;
+  transport.loadConfig.mockImplementationOnce(() => new Promise(value => { resolve = value; }));
+  transport.consumeChat.mockImplementationOnce((_source, _signal, emit) => { emit({ type: 'component', component: choices() }); return Promise.resolve(); });
+  root = createRoot(host); await act(async () => root.render(<ChatApp />)); await send('Local topic');
+  await selectChoice(0); expect(choiceButton().disabled).toBe(false);
+  await act(async () => resolve({ ready: true, mode: 'openai', defaultModel: 'model-a', models: ['model-a'] }));
+  expect(choiceButton().disabled).toBe(false);
+  transport.consumeChat.mockResolvedValueOnce(undefined); await click('Send choices and continue');
+  expect(transport.consumeChat).toHaveBeenCalledTimes(2); expect(transport.streamChat).not.toHaveBeenCalled();
 });
