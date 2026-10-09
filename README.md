@@ -1,8 +1,8 @@
 # Intelligent UI Lab
 
-An independent, local experiment in choosing an appropriate interface for an answer. A deterministic provider streams a small, validated UI vocabulary into a React renderer. **This is not a live AI service, an OpenAI implementation, or a reproduction of an unpublished protocol.** No account, API key, external backend, or payment is needed.
+An independent experiment in multi-turn answers that combine streamed text and allowlisted interactive components. The React client supports an offline fixture mode and an optional local OpenAI backend. **This is not an OpenAI implementation or a reproduction of an unpublished protocol.**
 
-## Run
+## Run offline
 
 Requires Node.js 22.12+ and npm.
 
@@ -11,71 +11,59 @@ npm ci
 npm run dev
 ```
 
-Open the localhost URL printed by Vite. The server binds to loopback by default. Do not expose the development server publicly. For a production bundle:
+Open the localhost URL printed by Vite. The browser starts in **Local mock** mode, which needs no API key and makes no model calls. Enter a question and send to stream the selected deterministic fixture. Mock fixtures intentionally do not answer your question.
+
+The development servers bind to loopback. Do not expose them publicly. For checks and the frontend production bundle:
 
 ```sh
 npm run check
 npm run preview
 ```
 
-`check` runs strict TypeScript checking, unit tests, and a production build. `npm run test:watch` is available for development. CI runs the same check on Node 22. Dependency versions are recorded in `package-lock.json`.
+`check` runs strict TypeScript, unit/DOM tests, and the production build. CI runs the same command. Preview serves static frontend assets, not the chat API; local fixture mode still works.
 
-## Try the three scenarios
+## Optional live server
 
-1. **Explore data skew:** run the stream, then adjust the hot-key share. The chart and max/average metric update entirely on the client. Reset restores the fixture's initial value.
-2. **A simple definition:** the provider emits only a text card. A question does not always need an interactive answer.
-3. **Reject an unsafe component:** an unsupported `html` component is rejected by the schema before rendering. This is an intentional error fixture.
+Follow [backend setup and security notes](server/README.md) for server-only environment variables and model configuration. Keep keys out of browser code and `VITE_*` variables. Select **Chat server** in the app after starting the configured backend. Models are selected from the server-provided list; an unconfigured server disables live sends. Explicit server mock mode is also available for endpoint testing without credentials.
 
-During streaming, cancel retains the partial preview; restart aborts the older run and clears its state. Changing a scenario cancels an active stream but keeps the last preview until the next run. The event log shows validated events, and the schema inspector shows the actual generated JSON Schema.
+Live sends transmit the current question and recent completed context through your server to OpenAI, can incur API charges, and are subject to provider data policies. No paid requests or deployment are needed for the automated tests. This app does not persist conversations; this is not a promise of zero retention by the external provider.
+
+## Use the conversation
+
+- Enter to send; Shift+Enter for a newline.
+- Stream text and validated components into separate conversation turns.
+- Stop to retain partial output. Retry the last stopped/error question using current settings without duplicating its user turn.
+- Change provider/model/fixture to stop an active response. Reset clears the current transcript and aborts the request.
+- Prior completed same-mode exchanges supply bounded context; partial/error output is excluded.
+- Interact with generated controls locally. Each turn has independent component state and unique control IDs.
+
+See [chat behavior, limits, and tests](docs/chat.md), [the component vocabulary](docs/components.md), and [verification notes](VERIFICATION.md).
 
 ## Architecture
 
 ```text
-UIProvider (AsyncIterable<Uint8Array>, AbortSignal)
-  -> UTF-8 + NDJSON framing
+question + bounded completed context
+  -> local deterministic fixture OR POST /api/chat
+  -> bounded UTF-8 NDJSON framing
   -> strict Zod event/component validation
-  -> run identity and duplicate-ID guard
-  -> allowlisted React component renderer
-  -> controlled local state
+  -> request identity and cancellation guards
+  -> escaped text + allowlisted React renderer
+  -> isolated local component state
 ```
 
-- `src/provider.ts`: provider interface, deterministic fixtures, deliberately split byte chunks, and abortable timing.
-- `src/protocol.ts`: schemas, bounded NDJSON decoder, and pure synthetic data model.
-- `src/main.tsx`: stream lifecycle, allowlisted component switch, and local simulator controls.
-- `src/protocol.test.ts`: byte boundary, Unicode, validation, limits, truncation, cancellation, and data fixture tests.
-- `src/style.css`: responsive layout, visible focus styles, native controls, and reduced-motion support. No remote assets are loaded.
+- `src/ChatApp.tsx`: multi-turn UI, configuration, lifecycle, stop/retry/reset.
+- `src/chat-state.ts`: transcript updates and bounded model context.
+- `src/chat-transport.ts`: safe configuration and streaming fetch/reader cleanup.
+- `src/chat-protocol.ts`: shared request and chat-event validation/decoder.
+- `src/components.tsx`: handwritten accessible component renderers.
+- `src/protocol.ts`: component schema and deterministic partition model.
+- `src/provider.ts`: offline fixture streams and intentional unsafe fixture.
+- `server/`: server-only model integration and request controls.
 
-### Protocol v0
-
-Every line is one complete JSON event. Supported events are `component` and terminal `done`. Components are `text`, `skew`, and `notice`. IDs must be unique within a run. Each schema is strict: extra fields, arbitrary actions, URLs, HTML, and scripts are not supported. React renders text as escaped text.
-
-```json
-{"type":"component","component":{"kind":"text","id":"answer","title":"Hello","body":"A short explanation."}}
-{"type":"done"}
-```
-
-A final newline is optional. Blank lines and CRLF are accepted. The decoder handles split UTF-8 characters and split JSON records, but **only renders complete validated events**, not incomplete JSON, JSX, or token fragments. Limits: 8,192 UTF-16 code units per record, 30 events per response, 1,200 characters per text field, 4–16 partitions, and 1,000–100,000 rows. Malformed UTF-8, malformed JSON, invalid schemas, missing completion, duplicate IDs, and records after completion reject the stream. Already rendered valid components remain inspectable on a later error. The final `done` event is recorded immediately, but the response is only marked complete after clean transport EOF.
-
-### Deterministic skew fixture
-
-The base fixture has 24,000 rows, 8 partitions, and a 45% hot-key share. First reserve `floor(rows * hotPercent / 100)` rows for partition 1, then distribute the remaining rows evenly; integer remainders go to the earliest partitions. Expected counts are `[12450, 1650, 1650, 1650, 1650, 1650, 1650, 1650]`. Max/average is `4.15`. At 0%, each partition has 3,000 rows. This model is an educational simplification, not a Spark planner, throughput estimate, or production dataset.
-
-## Adding a real model provider
-
-1. Implement `UIProvider.stream(scenario, signal)` or generalize its request type with explicit application-owned fields. Keep the mock for offline demos and regression tests.
-2. Put model calls behind a server endpoint. Keep credentials server-side; never put secrets in browser code or `VITE_*` variables. Add authentication, rate/usage limits, a timeout, and an explicit spending policy before enabling paid requests.
-3. Map the chosen model's output into this repository's NDJSON protocol. Do not assume a vendor has an equivalent transport or schema. Pass cancellation through the server, and bound input/output bytes at the transport layer.
-4. Continue validating all events on the client and server. Treat model output as untrusted. Test malformed output and interrupted streams. No dynamic imports, `eval`, generated JavaScript, or HTML injection.
-5. Add component capabilities deliberately. Each new component needs a strict schema, a handwritten renderer, accessibility checks, and tests. Actions must map to application-owned handlers. External mutations require explicit authorization and server-side checks; this demo has none.
-
-The current provider chooses scenarios from a dropdown. It does not reason, call a model, use natural-language prompts, or learn interface selection. That is the next experiment to design, not a capability claimed by this starter.
+No arbitrary HTML, generated JavaScript, remote images, dynamic imports from model output, or external component actions are supported. Components are data, never executable code. Both server and client validate generated output. A terminal event plus clean transport EOF is required for a completed response.
 
 ## Inspiration and limits
 
-The [OpenAI GPT-6 announcement](https://openai.com/zh-Hans-CN/index/gpt-6-for-everyone/) describes streamable native components, rendering as generation arrives, and choosing when text is enough. This repository explores those broad ideas with its own tiny event protocol. The announcement does not publish an internal schema or compiler algorithm; this project makes no claims about either.
+The [OpenAI GPT-6 announcement](https://openai.com/zh-Hans-CN/index/gpt-6-for-everyone/) describes streamable native components and choosing when text is enough. This repository explores those broad ideas with its own protocol. It makes no claims about unpublished internal schemas or compiler algorithms.
 
-This is a starter, not production infrastructure. It has no persistence, server, model integration, rich-text parser, recursive layout language, arbitrary executable output, telemetry, production monitoring, or deployment setup. The in-memory event list and local controls reset on reload. Validation limits protect this small demo; a future network provider also needs byte-level transport limits and server enforcement.
-
-## Verification
-
-Unit tests and browser verification are described in `VERIFICATION.md`. CI runs `npm run check` on pushes and pull requests; check the Actions tab for results against a specific commit. Local checks do not substitute for CI or real-browser verification. This repository has no deployment workflow.
+This is a local experiment, not production infrastructure. It has no authentication, durable persistence, account management, production monitoring, deployment workflow, or external tool execution. Read the backend security notes before enabling model access. Automated DOM tests do not substitute for real-browser interaction and visual verification; that stage remains blocked as described in the verification notes.

@@ -1,0 +1,23 @@
+.chat-app h1 { font-size: clamp(2.2rem, 5vw, 4rem); }
+.chat-layout { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 24px; align-items: start; }
+.chat-layout .controls { position: sticky; top: 20px; }
+.conversation { min-width: 0; }
+.turn-list { padding: 0; margin: 0; list-style: none; }
+.turn { margin-bottom: 28px; }
+.question { margin: 0 0 12px 36px; padding: 18px 22px; background: #e8eee9; border-radius: 16px 16px 0 16px; }
+.question p, .answer-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.question p { margin: 8px 0 0; }
+.speaker { font-size: 11px; font-weight: 700; letter-spacing: .12em; color: #466455; }
+.answer { padding: 20px; border: 1px solid #dce2dc; border-radius: 16px; background: #fffefa; }
+.answer .card { margin-top: 16px; }
+.answer-text { line-height: 1.75; }
+.composer { padding: 20px; background: #fffefa; border: 1px solid #cbd7cd; border-radius: 16px; margin-top: 24px; }
+.composer label { display: block; font-weight: 600; margin-bottom: 10px; }
+.composer textarea { resize: vertical; width: 100%; min-height: 96px; max-height: 400px; border: 1px solid #cbd7cd; border-radius: 10px; padding: 12px; background: white; font: inherit; color: inherit; }
+.composer textarea:focus-visible { outline: 3px solid #527e62; outline-offset: 3px; }
+.composer-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
+.composer-actions button { width: auto; white-space: nowrap; }
+.chat-layout .controls label { margin-top: 18px; }
+.status { text-transform: capitalize; }
+@media (max-width: 800px) { .chat-layout { grid-template-columns: 1fr; } .chat-layout .controls { position: static; } .question { margin-left: 16px; } }
+@media (max-width: 480px) { .composer-actions { flex-direction: column; align-items: stretch; } .answer, .composer { padding: 14px; } .preview-heading { flex-wrap: wrap; gap: 8px; } }

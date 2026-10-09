@@ -18,3 +18,12 @@ The build reports two upstream Zod PURE-annotation comment warnings; Rollup remo
 The development server is loopback-only. Its being ready does not mean this chat or another device can open it. These initial checks predate remote publication. See the repository Actions tab for subsequent CI runs; only runs matching the relevant commit verify that commit.
 
 Locked primary versions: React/React DOM 19.3.0, Zod 4.6.5, TypeScript 5.9.3, Vite 7.3.7, Vitest 5.0.3, React Vite plugin 5.2.0. Playwright 1.64.0 is available as a development dependency for future authorized browser tests; it was not used to bypass the blocked browser.
+
+## Streaming chat integration (2026-10-09)
+
+- Passed: `npm run check` against the integrated server, expanded components, and chat UI: strict TypeScript, 74 unit/DOM tests, and production build.
+- Covered: split UTF-8, terminal errors, truncated/invalid streams, reader cancellation/release, bounded complete context, ordered mixed text/components, stop/retry/reset and late callbacks, model/mode changes, configuration-refresh race, unavailable live setup, keyboard/IME behavior, escaped text, and per-turn control isolation.
+- DOM interaction tests use jsdom and mocked transport; they are not browser or screen-reader validation.
+- Still blocked: supported real-browser validation (`ERR_BLOCKED_BY_CLIENT`, described above). No bypass was attempted. Visual, responsive, and real-browser end-to-end checks remain unverified.
+- Not run: paid OpenAI requests, real credentials, production access, or deployment.
+- Commit-specific GitHub Actions status must be checked separately after push.
