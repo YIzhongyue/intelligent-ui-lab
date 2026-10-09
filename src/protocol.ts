@@ -1,10 +1,23 @@
 import { z } from 'zod';
 const text = z.string().min(1).max(1200);
+const id = z.string().regex(/^[a-z][a-z0-9-]{0,39}$/);
+const label = z.string().min(1).max(120);
+const cell = z.string().max(240);
+const base = { id, title: label };
+/** Handwritten, closed catalog. No generated actions, markup, URLs, or styles. */
 export const componentSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('text'), id: z.string().regex(/^[a-z][a-z0-9-]{0,39}$/), title: text, body: text }).strict(),
-  z.object({ kind: z.literal('skew'), id: z.string().regex(/^[a-z][a-z0-9-]{0,39}$/), title: text, partitions: z.number().int().min(4).max(16), rows: z.number().int().min(1000).max(100000), hotPercent: z.number().int().min(0).max(90) }).strict(),
-  z.object({ kind: z.literal('notice'), id: z.string().regex(/^[a-z][a-z0-9-]{0,39}$/), title: text, body: text }).strict(),
+  z.object({ kind: z.literal('text'), id, title: text, body: text }).strict(),
+  z.object({ kind: z.literal('skew'), id, title: text, partitions: z.number().int().min(4).max(16), rows: z.number().int().min(1000).max(100000), hotPercent: z.number().int().min(0).max(90) }).strict(),
+  z.object({ kind: z.literal('notice'), id, title: text, body: text }).strict(),
+  z.object({ kind: z.literal('metrics'), ...base, items: z.array(z.object({ label, value: label, detail: cell }).strict()).min(1).max(6) }).strict(),
+  z.object({ kind: z.literal('table'), ...base, columns: z.array(label).min(1).max(6), rows: z.array(z.array(cell).min(1).max(6)).min(1).max(12) }).strict().refine(spec => spec.rows.every(row => row.length === spec.columns.length), { message: 'Every table row must match the column count.' }),
+  z.object({ kind: z.literal('bar-chart'), ...base, unit: z.string().max(30), items: z.array(z.object({ label, value: z.number().min(0).max(1_000_000_000) }).strict()).min(1).max(12) }).strict(),
+  z.object({ kind: z.literal('checklist'), ...base, items: z.array(z.object({ label, checked: z.boolean() }).strict()).min(1).max(16) }).strict(),
+  z.object({ kind: z.literal('disclosure'), ...base, items: z.array(z.object({ summary: label, body: z.string().min(1).max(600) }).strict()).min(1).max(8) }).strict(),
+  z.object({ kind: z.literal('comparison'), ...base, items: z.array(z.object({ name: label, summary: z.string().min(1).max(400), advantages: z.array(cell).max(5), limitations: z.array(cell).max(5) }).strict()).min(2).max(3) }).strict(),
 ]);
+/** Derived from the actual validator; table rectangularity is additionally checked at runtime. */
+export const componentJSONSchema = z.toJSONSchema(componentSchema);
 export const eventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('component'), component: componentSchema }).strict(),
   z.object({ type: z.literal('done') }).strict(),
