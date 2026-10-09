@@ -21,8 +21,8 @@ Locked primary versions: React/React DOM 19.3.0, Zod 4.6.5, TypeScript 5.9.3, Vi
 
 ## Streaming chat integration (2026-10-09)
 
-- Passed: `npm run check` against the integrated server, expanded components, and chat UI: strict TypeScript, 75 unit/DOM tests, and production build.
-- Covered: split UTF-8, terminal errors, truncated/invalid streams, reader cancellation/release, bounded complete context, ordered mixed text/components, stop/retry/reset and late callbacks, model/mode changes, configuration-refresh race, unavailable live setup, keyboard/IME behavior, escaped text, and per-turn control isolation.
+- Passed: `npm run check` against the integrated server, expanded components, and chat UI: strict TypeScript, 76 unit/DOM tests, and production build.
+- Covered: split UTF-8, terminal errors, truncated/invalid streams, reader cancellation/release, bounded complete context, ordered mixed text/components, stop/retry/reset and late callbacks, model/mode changes, configuration-refresh race, unavailable live setup, keyboard/IME behavior, escaped text, and per-turn control isolation, and computed/source color-pair contrast guards for chat text and placeholder.
 - DOM interaction tests use jsdom and mocked transport; they are not browser or screen-reader validation.
 - Still blocked: supported real-browser validation (`ERR_BLOCKED_BY_CLIENT`, described above). No bypass was attempted. Visual, responsive, and real-browser end-to-end checks remain unverified.
 - Not run: paid OpenAI requests, real credentials, production access, or deployment.
