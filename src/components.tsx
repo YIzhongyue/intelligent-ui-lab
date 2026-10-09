@@ -39,7 +39,7 @@ function renderContent(spec: Exclude<ComponentSpec, { kind: 'skew' | 'notice' }>
     case 'metrics': return <dl className="ui-metrics">{spec.items.map((item, index) => <div key={index}><dt>{item.label}</dt><dd>{item.value}</dd>{item.detail && <dd className="ui-detail">{item.detail}</dd>}</div>)}</dl>;
     case 'table': return <div className="ui-table-scroll" role="region" aria-label={`${spec.title} table`} tabIndex={0}><table><caption>{spec.title}</caption><thead><tr>{spec.columns.map((column, index) => <th key={index} scope="col">{column}</th>)}</tr></thead><tbody>{spec.rows.map((row, index) => <tr key={index}>{row.map((value, column) => <td key={column}>{value}</td>)}</tr>)}</tbody></table></div>;
     case 'bar-chart': {
-      const max = Math.max(1, ...spec.items.map(item => item.value));
+      const max = Math.max(...spec.items.map(item => item.value)) || 1;
       return <><p className="ui-help">{spec.unit ? `Values in ${spec.unit}` : 'Values'} · bars scaled to the largest value</p><ul className="ui-bars">{spec.items.map((item, index) => <li key={index}><div><span>{item.label}</span><strong>{item.value.toLocaleString('en-US')}{spec.unit && ` ${spec.unit}`}</strong></div><div className="ui-bar-track" aria-hidden="true"><span style={{ width: `${item.value / max * 100}%` }} /></div></li>)}</ul></>;
     }
     case 'checklist': return <Checklist spec={spec} instanceId={instanceId} />;

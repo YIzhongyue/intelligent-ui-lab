@@ -68,6 +68,11 @@ describe('allowlisted renderer', () => {
     expect(table).toContain('scope="col"');
     expect(table).toContain('tabindex="0"');
   });
+  it('scales fractional positive values to the actual maximum', () => {
+    const html = renderToStaticMarkup(<UIRenderer spec={componentSchema.parse({ ...catalogExamples[2], items: [{ label: 'Small', value: 0.1 }, { label: 'Largest', value: 0.5 }] })} />);
+    expect(html).toContain('width:20%');
+    expect(html).toContain('width:100%');
+  });
   it('renders zero bars without invalid dimensions', () => {
     const html = renderToStaticMarkup(<UIRenderer spec={componentSchema.parse({ ...catalogExamples[2], items: [{ label: 'None', value: 0 }] })} />);
     expect(html).toContain('width:0%');
