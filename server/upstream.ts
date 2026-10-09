@@ -14,7 +14,7 @@ export function createGenerator(config: ServerConfig): Generate {
   return async function* (request, signal) {
     if (!config.apiKey || !config.defaultModel) throw new Error('Unconfigured');
     // Pin the official destination; environment base URLs must never redirect credentials.
-    const client = new OpenAI({ apiKey: config.apiKey, baseURL: 'https://api.openai.com/v1', maxRetries: 0, timeout: config.timeoutMs });
+    const client = new OpenAI({ apiKey: config.apiKey, baseURL: 'https://api.openai.com/v1', maxRetries: 0, logLevel: 'off', timeout: config.timeoutMs });
     const stream = await client.responses.create({
       model: request.model, instructions: generationPrompt(), input: request.messages,
       stream: true, store: false, max_output_tokens: config.maxOutputTokens,

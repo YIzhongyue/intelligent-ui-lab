@@ -13,7 +13,7 @@ it('uses Responses streaming with explicit official endpoint, no retries and bou
   const output = [];
   for await (const event of generate({ model: 'test-model', messages: [{ role: 'user', content: 'Hi' }] }, signal)) output.push(event);
   expect(output).toEqual([{ type: 'delta', delta: '{"type":"done"}\n' }, { type: 'completed' }]);
-  expect(mocks.options).toHaveBeenCalledWith({ apiKey: 'fake-test-key', baseURL: 'https://api.openai.com/v1', maxRetries: 0, timeout: 45000 });
+  expect(mocks.options).toHaveBeenCalledWith({ apiKey: 'fake-test-key', baseURL: 'https://api.openai.com/v1', maxRetries: 0, logLevel: 'off', timeout: 45000 });
   expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({ model: 'test-model', stream: true, store: false, max_output_tokens: 4096, input: [{ role: 'user', content: 'Hi' }] }), { signal });
 });
 it('treats incomplete, failed, refused and missing completion as errors', async () => {
