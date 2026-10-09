@@ -35,7 +35,8 @@ Live sends transmit the current question and recent completed context through yo
 - Stop to retain partial output. Retry the last stopped/error question using current settings without duplicating its user turn.
 - Change provider/model/fixture to stop an active response. Reset clears the current transcript and aborts the request.
 - Prior completed same-mode exchanges supply bounded context; partial/error output is excluded.
-- Interact with generated controls locally. Each turn has independent component state and unique control IDs.
+- Explore icon-led sections and plain or icon-led single/multi-select choices. Selecting stays local; **Send choices and continue** previews and sends a normal next user message. Older choices are disabled after settings changes or a newer turn.
+- Interact with other generated controls locally. Each turn has independent component state and unique control IDs.
 
 See [chat behavior, limits, and tests](docs/chat.md), [the component vocabulary](docs/components.md), and [verification notes](VERIFICATION.md).
 

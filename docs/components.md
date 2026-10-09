@@ -43,3 +43,23 @@ Each object below is a component payload. Wrap it in `{"type":"component","compo
 ## Verification
 
 `npm run check` covers strict types, schema acceptance/rejection, framing, server-rendered escaping, semantic table/disclosure structure, zero-valued bars, and repeated-ID isolation. The renderer tests use React server rendering and do not prove browser layout or interactive state transitions. Real-browser keyboard, checkbox/reset, slider/reset, small-screen overflow, and disclosure behavior remain required visual/interaction checks before calling the UI browser-verified. No new testing dependencies are introduced here.
+
+## Icon-led sections and explicit choices
+
+`icon-sections` uses 1–8 rows containing `title` (1–120 characters), `body` (1–600), `icon`, and `color`. Dividers separate rows. `choice-group` uses 2–8 uniquely identified options, `selection: "single" | "multiple"`, and optional integer `maxSelections` (1–8, no more than the option count, and only 1 for single selection). Each option has `id`, `title` (1–120), optional `body` (1–240), and optional paired `icon` and `color`. The same application-owned row primitive renders both shapes; composition does not permit recursive layouts. Plain options omit both icon and color.
+
+Allowed icon names: `check-circle`, `triangle-alert`, `octagon-alert`, `info`, `lightbulb`, `book-open`, `code`, `target`, `clock`, `list-checks`, `chart-column`, `shield-check`.
+
+Allowed colors: `neutral`, `green`, `amber`, `red`, `blue`, `purple`. The model chooses a token; fixed theme-friendly CSS implements its color. Icon meaning is also conveyed by visible text. Lucide uses static named imports; there are no model-selected import paths, custom SVG strings, arbitrary CSS colors, URLs or styles. See the [official Lucide React guide](https://lucide.dev/guide/react/) for the underlying SVG library.
+
+The generated schema includes these exact enums. Runtime refinements additionally enforce unique option IDs, paired icon/color, and selection-limit cross-field constraints; the generation prompt states all three explicitly.
+
+```json
+{"kind":"icon-sections","id":"study-notes","title":"Study approaches","items":[{"title":"Start with theory","body":"Establish the main idea before practicing.","icon":"book-open","color":"blue"}]}
+{"kind":"choice-group","id":"study-focus","title":"Choose a focus","selection":"single","options":[{"id":"theory","title":"Explain the concept"},{"id":"practice","title":"Work through an example"}]}
+{"kind":"choice-group","id":"topics","title":"Choose engineering topics","selection":"multiple","maxSelections":2,"options":[{"id":"validation","title":"Validation","body":"Check bounded inputs.","icon":"check-circle","color":"green"},{"id":"races","title":"Request races","body":"Ignore older responses.","icon":"triangle-alert","color":"amber"}]}
+```
+
+The renderer's optional `choiceAction` is application-owned, never model data. Without it, choices are read-only. With it, native labeled radios/checkboxes store selection locally. An explicit fixed “Send choices and continue” button calls the parent with selected IDs only. A preview shows the exact message before sending. The parent rebuilds it from the stored validated spec in declaration order, including complete selected titles and bodies. Maximum allowed content fits within the 4,000-character request budget; nothing is silently truncated. Selection alone never starts a request. No model-defined action, endpoint, hidden prompt, button label or preselected option is accepted.
+
+UI DOM tests cover both input types, exclusive radios, multi-selection limits and deselection, independent groups, previews, double-click submission, stale choices and retries. These supplement, but do not replace, the still-pending real-browser keyboard and layout checks.

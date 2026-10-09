@@ -134,7 +134,9 @@ describe('explicit choice continuation', () => {
     await act(async () => requests[0].resolve()); expect(choiceButton().disabled).toBe(true);
     await selectChoice(0); expect(requests).toHaveLength(1);
     const preview = query('.ui-choice-preview p').textContent;
+    await change('#prompt', 'Unsent draft');
     await act(async () => { choiceButton().click(); choiceButton().click(); });
+    expect(query<HTMLTextAreaElement>('#prompt').value).toBe('Unsent draft');
     expect(requests).toHaveLength(2); expect(host.querySelectorAll('.question')[1].textContent).toBe('YOU' + preview);
     expect(transport.streamChat.mock.calls[1][0].at(-1).content).toBe(preview);
     expect(choiceButton().disabled).toBe(true);
@@ -187,4 +189,17 @@ describe('explicit choice continuation', () => {
     expect(host.querySelectorAll('.ui-choice')).toHaveLength(3); expect(choiceButton().disabled).toBe(true);
     await selectChoice(2); await click('Send choices and continue'); expect(requests).toHaveLength(3);
   });
+});
+
+it('keeps local mock choices enabled when delayed initial server configuration arrives', async () => {
+  await act(async () => root.unmount());
+  let resolve!: (value: unknown) => void;
+  transport.loadConfig.mockImplementationOnce(() => new Promise(value => { resolve = value; }));
+  transport.consumeChat.mockImplementationOnce((_source, _signal, emit) => { emit({ type: 'component', component: choices() }); return Promise.resolve(); });
+  root = createRoot(host); await act(async () => root.render(<ChatApp />)); await send('Local topic');
+  await selectChoice(0); expect(choiceButton().disabled).toBe(false);
+  await act(async () => resolve({ ready: true, mode: 'openai', defaultModel: 'model-a', models: ['model-a'] }));
+  expect(choiceButton().disabled).toBe(false);
+  transport.consumeChat.mockResolvedValueOnce(undefined); await click('Send choices and continue');
+  expect(transport.consumeChat).toHaveBeenCalledTimes(2); expect(transport.streamChat).not.toHaveBeenCalled();
 });

@@ -30,7 +30,7 @@ export function ChatApp() {
     setConfigError('');
     setConfigLoading(true);
     void loadConfig(controller.signal).then(value => {
-      if (!controller.signal.aborted) { settingsVersion.current++; setConfig(value); setModel(value.defaultModel); }
+      if (!controller.signal.aborted) { setConfig(value); setModel(value.defaultModel); }
     }).catch(cause => { if (!controller.signal.aborted) { setConfig(null); setConfigError(cause instanceof Error ? cause.message : 'Could not load the server configuration.'); } }).finally(() => { if (!controller.signal.aborted) setConfigLoading(false); });
     return () => controller.abort();
   }, [configRevision]);
@@ -51,20 +51,20 @@ export function ChatApp() {
     const request = { controller, id: turn.id };
     active.current = request;
     dispatch({ type: 'start', turn });
-    if (!retry) setPrompt('');
+    if (!retry && continuation === undefined) setPrompt('');
     const accept = (event: ChatEvent) => {
       if (active.current === request && !controller.signal.aborted) dispatch({ type: 'event', id: turn.id, event });
     };
     void (async () => {
-    try {
-      if (mode === 'mock') await consumeChat(mockProvider.stream(scenario, controller.signal), controller.signal, accept);
-      else await streamChat(buildMessages(turnsRef.current, turn), model, controller.signal, accept);
-      if (active.current === request) dispatch({ type: 'settle', id: turn.id, status: 'complete' });
-    } catch (cause) {
-      if (active.current === request && !controller.signal.aborted) dispatch({ type: 'settle', id: turn.id, status: 'error', error: cause instanceof Error ? cause.message : 'The response could not be completed.' });
-    } finally {
-      if (active.current === request) active.current = null;
-    }
+      try {
+        if (mode === 'mock') await consumeChat(mockProvider.stream(scenario, controller.signal), controller.signal, accept);
+        else await streamChat(buildMessages(turnsRef.current, turn), model, controller.signal, accept);
+        if (active.current === request) dispatch({ type: 'settle', id: turn.id, status: 'complete' });
+      } catch (cause) {
+        if (active.current === request && !controller.signal.aborted) dispatch({ type: 'settle', id: turn.id, status: 'error', error: cause instanceof Error ? cause.message : 'The response could not be completed.' });
+      } finally {
+        if (active.current === request) active.current = null;
+      }
     })();
     return true;
   }

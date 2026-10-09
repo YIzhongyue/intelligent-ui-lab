@@ -33,3 +33,11 @@ The backend independently validates request and response limits. Clean EOF is re
 - `src/ChatApp.test.tsx`: escaped streamed text, follow-up context, stop/retry/reset, late callbacks, mode/model changes, server configuration, and keyboard controls.
 
 DOM tests run in jsdom with mocked transport. They are not real-browser interaction or visual verification. Real browser validation was attempted separately but blocked by `ERR_BLOCKED_BY_CLIENT`; this change does not claim that stage passed. No paid API request, real credential, deployment, or production data is used by the tests.
+
+## Explicit choice continuation
+
+Choose **Choose a study focus** in Local mock for icon-led sections followed by plain single-select options. Choose **Choose engineering topics** for multi-select options composed with icon rows. Both fixtures are synthetic and require no key. As with every local fixture, continuation repeats the selected deterministic fixture; it does not interpret your selections using AI.
+
+Selections remain local until **Send choices and continue**. The visible preview becomes a normal user bubble and starts the next response. The action uses the current settings only while their identity is unchanged from the source answer. Every provider/model/fixture change or server-config refresh permanently invalidates older choice buttons, even when values are changed back or the server switches from mock to live using the same model name. Ask again to receive new choices. Initial background configuration loading does not invalidate local mock choices. This conservatively prevents silent routing or billing changes.
+
+The parent validates source turn, attempt, component ID, completion, latest-turn position, live readiness, and selected IDs against its stored spec. A synchronous one-shot token plus the active-request guard prevents repeated clicks from producing multiple requests. Incomplete, stopped, failed, historical or stale choices cannot submit. A successful submission makes all groups in the old answer historical. Failure or cancellation of the next response uses the ordinary **Retry with current settings** flow, retaining one selection message; reset clears the conversation and action state. All pre-existing attempt isolation, cancellation and bounded context rules still apply.

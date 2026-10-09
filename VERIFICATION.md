@@ -27,3 +27,9 @@ Locked primary versions: React/React DOM 19.3.0, Zod 4.6.5, TypeScript 5.9.3, Vi
 - Still blocked: supported real-browser validation (`ERR_BLOCKED_BY_CLIENT`, described above). No bypass was attempted. Visual, responsive, and real-browser end-to-end checks remain unverified.
 - Not run: paid OpenAI requests, real credentials, production access, or deployment.
 - Commit-specific GitHub Actions status must be checked separately after push.
+
+## Icon sections and choice continuation
+
+Added strict schema/render tests for the complete 12-icon/six-color catalog, escaping, duplicate IDs, cross-field selection constraints, paired optional icon/color, invalid styling/actions, declaration-order summaries and worst-case request length. React DOM tests cover completion gating, empty selection, native single/multiple input semantics, deselection at a cap, independent groups, exact preview-to-request equality, same-frame double clicks, historical/source/attempt guards, forged child IDs, settings/config changes, mock-to-live refresh, continuation failure/retry, reset and ignored stale output.
+
+The aggregate check includes these new tests. No paid model requests, API-key setup, deployment or private reference content is used. Existing real-browser access remains blocked (`ERR_BLOCKED_BY_CLIENT`); no bypass was attempted and DOM tests are not represented as real-browser verification. Responsive layout, physical keyboard navigation and visual alignment still need a supported real-browser check.
