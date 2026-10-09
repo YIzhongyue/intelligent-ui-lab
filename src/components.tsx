@@ -1,6 +1,8 @@
 import { useId, useState } from 'react';
 import { partitionRows, type ComponentSpec } from './protocol';
 import './components.css';
+import { IconSections, ChoiceGroup } from './icon-choice';
+import type { ChoiceAction } from './choice';
 
 function Skew({ spec, instanceId }: { instanceId: string; spec: Extract<ComponentSpec, { kind: 'skew' }> }) {
   const [hot, setHot] = useState(spec.hotPercent);
@@ -25,16 +27,18 @@ function Checklist({ spec, instanceId }: { spec: Extract<ComponentSpec, { kind: 
 }
 
 /** Accept only validated specs. Remount with a new key for a new response/spec. */
-export function UIRenderer({ spec, idPrefix = 'ui' }: { spec: ComponentSpec; idPrefix?: string }) {
+export function UIRenderer({ spec, idPrefix = 'ui', choiceAction }: { spec: ComponentSpec; idPrefix?: string; choiceAction?: ChoiceAction }) {
   // React's instance ID prevents collisions even when answers reuse component IDs.
   const instanceId = `${idPrefix}-${useId()}-${spec.id}`;
   if (spec.kind === 'skew') return <Skew spec={spec} instanceId={instanceId} />;
   if (spec.kind === 'notice') return <aside className="notice ui-component" aria-labelledby={`${instanceId}-title`}><strong id={`${instanceId}-title`}>{spec.title}</strong><p>{spec.body}</p></aside>;
-  return <section className="card ui-component" aria-labelledby={`${instanceId}-title`}><h2 id={`${instanceId}-title`}>{spec.title}</h2>{renderContent(spec, instanceId)}</section>;
+  return <section className="card ui-component" aria-labelledby={`${instanceId}-title`}><h2 id={`${instanceId}-title`}>{spec.title}</h2>{renderContent(spec, instanceId, choiceAction)}</section>;
 }
 
-function renderContent(spec: Exclude<ComponentSpec, { kind: 'skew' | 'notice' }>, instanceId: string) {
+function renderContent(spec: Exclude<ComponentSpec, { kind: 'skew' | 'notice' }>, instanceId: string, choiceAction?: ChoiceAction) {
   switch (spec.kind) {
+    case 'icon-sections': return <IconSections spec={spec} />;
+    case 'choice-group': return <ChoiceGroup spec={spec} instanceId={instanceId} action={choiceAction} />;
     case 'text': return <p>{spec.body}</p>;
     case 'metrics': return <dl className="ui-metrics">{spec.items.map((item, index) => <div key={index}><dt>{item.label}</dt><dd>{item.value}</dd>{item.detail && <dd className="ui-detail">{item.detail}</dd>}</div>)}</dl>;
     case 'table': return <div className="ui-table-scroll" role="region" aria-label={`${spec.title} table`} tabIndex={0}><table><caption>{spec.title}</caption><thead><tr>{spec.columns.map((column, index) => <th key={index} scope="col">{column}</th>)}</tr></thead><tbody>{spec.rows.map((row, index) => <tr key={index}>{row.map((value, column) => <td key={column}>{value}</td>)}</tr>)}</tbody></table></div>;

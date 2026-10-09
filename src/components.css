@@ -29,3 +29,26 @@
 .simulator .metrics { flex-wrap: wrap; }
 .simulator .chart { overflow-x: auto; }
 .simulator .bar-column { min-width: 28px; }
+.ui-icon-sections { list-style: none; padding: 0; margin: 0; }
+.ui-icon-sections li + li { border-top: 1px solid #405362; margin-top: 22px; padding-top: 22px; }
+.ui-icon-row { display: flex; align-items: flex-start; gap: 14px; min-width: 0; }
+.ui-icon { flex-shrink: 0; margin-top: 2px; }
+.ui-icon-neutral { color: #c4d0db; }
+.ui-icon-green { color: #9ce4b1; }
+.ui-icon-amber { color: #f6cb85; }
+.ui-icon-red { color: #ffa6a6; }
+.ui-icon-blue { color: #9bcaff; }
+.ui-icon-purple { color: #d2b6ff; }
+.ui-icon-copy { min-width: 0; }
+.ui-icon-copy > strong { display: block; color: #ecf5f8; font-size: 16px; }
+.ui-icon-body { display: block; margin-top: 8px; white-space: pre-wrap; color: #afbecb; line-height: 1.7; }
+.ui-choices { border: 0; padding: 0; margin: 0; min-width: 0; }
+.ui-choices legend { color: #afbecb; font-size: 13px; margin-bottom: 12px; }
+.ui-choice { display: flex; align-items: flex-start; gap: 12px; padding: 16px 0; cursor: pointer; }
+.ui-choice + .ui-choice { border-top: 1px solid #405362; }
+.ui-choice > input { flex-shrink: 0; width: 20px; height: 20px; margin: 3px 0 0; accent-color: #b5f4d6; }
+.ui-choice input:focus-visible { outline: 3px solid #adf4d4; outline-offset: 4px; }
+.ui-choices:disabled { opacity: .7; }
+.ui-choice-preview { border: 1px solid #405362; border-radius: 8px; padding: 12px; margin: 14px 0; font-size: 13px; }
+.ui-choice-preview p { white-space: pre-wrap; margin: 8px 0 0; }
+.ui-choice-submit { width: 100%; border-radius: 999px; }

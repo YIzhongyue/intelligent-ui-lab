@@ -4,8 +4,24 @@ const id = z.string().regex(/^[a-z][a-z0-9-]{0,39}$/);
 const label = z.string().min(1).max(120);
 const cell = z.string().max(240);
 const base = { id, title: label };
+export const iconNames = ['check-circle', 'triangle-alert', 'octagon-alert', 'info', 'lightbulb', 'book-open', 'code', 'target', 'clock', 'list-checks', 'chart-column', 'shield-check'] as const;
+export const iconColors = ['neutral', 'green', 'amber', 'red', 'blue', 'purple'] as const;
+const icon = z.enum(iconNames);
+const color = z.enum(iconColors);
+const sectionFields = { title: label, body: z.string().min(1).max(600), icon, color };
+export const choiceSchema = z.object({
+  kind: z.literal('choice-group'), ...base,
+  selection: z.enum(['single', 'multiple']),
+  options: z.array(z.object({ id, title: label, body: z.string().min(1).max(240).optional(), icon: icon.optional(), color: color.optional() }).strict()
+    .refine(option => Boolean(option.icon) === Boolean(option.color), { message: 'An option icon and color must be supplied together.' })).min(2).max(8),
+  maxSelections: z.number().int().min(1).max(8).optional(),
+}).strict().refine(spec => new Set(spec.options.map(option => option.id)).size === spec.options.length, { message: 'Option IDs must be unique.' })
+  .refine(spec => spec.maxSelections === undefined || (spec.maxSelections <= spec.options.length && (spec.selection === 'multiple' || spec.maxSelections === 1)), { message: 'Selection limit must fit the selection mode and options.' });
+export type ChoiceSpec = z.infer<typeof choiceSchema>;
 /** Handwritten, closed catalog. No generated actions, markup, URLs, or styles. */
 export const componentSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('icon-sections'), ...base, items: z.array(z.object(sectionFields).strict()).min(1).max(8) }).strict(),
+  choiceSchema,
   z.object({ kind: z.literal('text'), id, title: text, body: text }).strict(),
   z.object({ kind: z.literal('skew'), id, title: text, partitions: z.number().int().min(4).max(16), rows: z.number().int().min(1000).max(100000), hotPercent: z.number().int().min(0).max(90) }).strict(),
   z.object({ kind: z.literal('notice'), id, title: text, body: text }).strict(),
