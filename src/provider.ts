@@ -1,5 +1,5 @@
 import type { UIEvent } from './protocol';
-export type Scenario = 'skew' | 'text' | 'invalid';
+export type Scenario = 'skew' | 'text' | 'single-choice' | 'multiple-choice' | 'invalid';
 export interface UIProvider {
   readonly label: string;
   stream(scenario: Scenario, signal: AbortSignal): AsyncIterable<Uint8Array>;
@@ -9,6 +9,22 @@ export const fixtures: Record<Exclude<Scenario, 'invalid'>, UIEvent[]> = {
     { type: 'component', component: { kind: 'text', id: 'intro', title: 'One hot key. Uneven work.', body: 'Explore a synthetic dataset of 24,000 rows across 8 partitions. A hot key sends an extra share of rows to the first partition. Move the slider to see why one worker can become a bottleneck.' } },
     { type: 'component', component: { kind: 'skew', id: 'partition-lab', title: 'Partition workload', partitions: 8, rows: 24000, hotPercent: 45 } },
     { type: 'component', component: { kind: 'notice', id: 'takeaway', title: 'Try this', body: 'Compare 0%, 45%, and 90% hot-key share. The imbalance metric is max partition rows divided by average rows. This is a simplified workload model, not a runtime prediction.' } },
+    { type: 'done' },
+  ],
+  'single-choice': [
+    { type: 'component', component: { kind: 'icon-sections', id: 'study-notes', title: 'Two ways to study', items: [
+      { title: 'Start with the idea', body: 'A short explanation can establish a shared vocabulary.', icon: 'book-open', color: 'blue' },
+      { title: 'Try a small example', body: 'A synthetic exercise makes the idea concrete.', icon: 'lightbulb', color: 'amber' },
+    ] } },
+    { type: 'component', component: { kind: 'choice-group', id: 'study-focus', title: 'What should we explore next?', selection: 'single', options: [{ id: 'concept', title: 'Explain the concept' }, { id: 'exercise', title: 'Walk through an exercise' }] } },
+    { type: 'done' },
+  ],
+  'multiple-choice': [
+    { type: 'component', component: { kind: 'choice-group', id: 'engineering-focus', title: 'Choose engineering topics to explore', selection: 'multiple', maxSelections: 2, options: [
+      { id: 'checks', title: 'Validation', body: 'Check bounded inputs before rendering.', icon: 'check-circle', color: 'green' },
+      { id: 'races', title: 'Request races', body: 'Ignore responses from an older attempt.', icon: 'triangle-alert', color: 'amber' },
+      { id: 'safety', title: 'Safe rendering', body: 'Keep generated content separate from executable code.', icon: 'octagon-alert', color: 'red' },
+    ] } },
     { type: 'done' },
   ],
   text: [
